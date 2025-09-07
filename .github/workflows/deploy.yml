@@ -78,9 +78,11 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: `✅ **Build Successful!**
-            \n\nThe application has been built successfully. To enable automatic Vercel deployments, configure the following repository secrets:
-            \n- \`VERCEL_TOKEN\`
-            \n- \`VERCEL_ORG_ID\`
-            \n- \`VERCEL_PROJECT_ID\`
-            \n\nYou can run the application locally with \`npm run dev\`.`
+            
+            The application has been built successfully. To enable automatic Vercel deployments, configure the following repository secrets:
+            - \`VERCEL_TOKEN\`
+            - \`VERCEL_ORG_ID\`
+            - \`VERCEL_PROJECT_ID\`
+            
+            You can run the application locally with \`npm run dev\`.`
           });
