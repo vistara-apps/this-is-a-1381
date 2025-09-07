@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { MessageCircle, Copy, Loader2 } from 'lucide-react'
+import openaiService from '../services/openaiService.js'
 
 const NegotiationScript = ({ diamond, results }) => {
   const [script, setScript] = useState('')
   const [checklist, setChecklist] = useState([])
   const [isGenerating, setIsGenerating] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     generateNegotiationContent()
@@ -12,37 +14,30 @@ const NegotiationScript = ({ diamond, results }) => {
 
   const generateNegotiationContent = async () => {
     setIsGenerating(true)
+    setError(null)
     
-    // Simulate AI generation - in real app, this would call OpenAI API
-    setTimeout(() => {
-      const mockScript = `Based on our analysis of your ${diamond.carat}ct ${diamond.cut} diamond, here's your negotiation strategy:
+    try {
+      // Use real OpenAI service for script generation
+      const [generatedScript, generatedChecklist] = await Promise.all([
+        openaiService.generateNegotiationScript(diamond, results),
+        openaiService.generateNegotiationChecklist(diamond, results)
+      ])
 
-**Opening Statement:**
-"I've done extensive research on this diamond and similar ones in the current market. While I'm interested, I have some concerns about the pricing relative to comparable stones."
-
-**Key Negotiation Points:**
-1. **Market Comparison**: "Comparable diamonds are currently selling for $${results.priceRange.min.toLocaleString()} - $${results.priceRange.max.toLocaleString()}. This listing is above that range."
-
-2. **Quality Considerations**: "The ${diamond.color} color grade and ${diamond.clarity} clarity, while good, show some characteristics that affect the stone's brilliance by approximately 5%."
-
-3. **Closing Strategy**: "I'm prepared to make a decision today if we can work on the pricing. My research shows a fair price would be around $${Math.round(results.fairMarketValue * 0.9).toLocaleString()}."
-
-**Alternative Approach:**
-If they won't negotiate on price, ask for additional services like free setting, extended warranty, or professional cleaning service.`
-
-      const mockChecklist = [
-        { item: 'Verify all diamond specifications match the listing', completed: false },
-        { item: 'Ask for recent comparable sales in their inventory', completed: false },
-        { item: 'Request to see the diamond under different lighting conditions', completed: false },
-        { item: 'Inquire about their return/exchange policy', completed: false },
-        { item: 'Get all agreements in writing before payment', completed: false },
-        { item: 'Ask about certification authenticity verification', completed: false }
-      ]
-
-      setScript(mockScript)
-      setChecklist(mockChecklist)
+      setScript(generatedScript)
+      setChecklist(generatedChecklist)
+    } catch (error) {
+      console.error('Failed to generate negotiation content:', error)
+      setError('Failed to generate negotiation content. Please try again.')
+      
+      // Fallback to mock data
+      const fallbackScript = openaiService.generateMockNegotiationScript(diamond, results)
+      const fallbackChecklist = openaiService.generateMockChecklist()
+      
+      setScript(fallbackScript)
+      setChecklist(fallbackChecklist)
+    } finally {
       setIsGenerating(false)
-    }, 2000)
+    }
   }
 
   const copyScript = () => {
@@ -66,6 +61,24 @@ If they won't negotiate on price, ask for additional services like free setting,
         <p className="text-gray-300">
           Creating personalized negotiation scripts based on your diamond's specifications...
         </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="glass-effect rounded-lg p-8 text-center">
+        <div className="text-red-400 mb-4">⚠️</div>
+        <h3 className="text-xl font-semibold text-white mb-2">
+          Generation Error
+        </h3>
+        <p className="text-gray-300 mb-4">{error}</p>
+        <button
+          onClick={generateNegotiationContent}
+          className="bg-accent hover:bg-accent/90 text-white px-6 py-2 rounded-md font-medium transition-colors"
+        >
+          Try Again
+        </button>
       </div>
     )
   }

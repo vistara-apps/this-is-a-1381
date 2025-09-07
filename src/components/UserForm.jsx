@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { Upload, Link as LinkIcon, Hash, Loader2 } from 'lucide-react'
+import diamondService from '../services/diamondService.js'
+import openaiService from '../services/openaiService.js'
 
 const UserForm = ({ variant, onSubmit, isProcessing }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +14,8 @@ const UserForm = ({ variant, onSubmit, isProcessing }) => {
     sku: '',
     file: null
   })
+  const [imageAnalyzing, setImageAnalyzing] = useState(false)
+  const [imageError, setImageError] = useState(null)
 
   const cuts = ['Round', 'Princess', 'Cushion', 'Emerald', 'Oval', 'Radiant', 'Asscher', 'Marquise', 'Heart', 'Pear']
   const colors = ['D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']
@@ -22,9 +26,42 @@ const UserForm = ({ variant, onSubmit, isProcessing }) => {
     onSubmit(formData)
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0]
+    if (!file) return
+
     setFormData({ ...formData, file })
+    setImageError(null)
+
+    // If it's an image upload variant, try to analyze the image
+    if (variant === 'upload' && file.type.startsWith('image/')) {
+      setImageAnalyzing(true)
+      
+      try {
+        // Upload image and analyze with AI
+        const uploadResult = await diamondService.uploadDiamondImage(file)
+        
+        if (uploadResult.analysis && typeof uploadResult.analysis === 'object') {
+          // Auto-fill form fields from AI analysis
+          const analysis = uploadResult.analysis
+          setFormData(prev => ({
+            ...prev,
+            carat: analysis.carat || prev.carat,
+            cut: analysis.cut || prev.cut,
+            color: analysis.color || prev.color,
+            clarity: analysis.clarity || prev.clarity,
+            measurements: analysis.measurements || prev.measurements,
+            imageUrl: uploadResult.imageUrl,
+            ipfsHash: uploadResult.ipfsHash
+          }))
+        }
+      } catch (error) {
+        console.error('Image analysis error:', error)
+        setImageError('Failed to analyze image. You can still proceed manually.')
+      } finally {
+        setImageAnalyzing(false)
+      }
+    }
   }
 
   const renderIcon = () => {
@@ -78,7 +115,18 @@ const UserForm = ({ variant, onSubmit, isProcessing }) => {
                   Choose File
                 </label>
                 {formData.file && (
-                  <div className="mt-2 text-accent">{formData.file.name}</div>
+                  <div className="mt-2">
+                    <div className="text-accent">{formData.file.name}</div>
+                    {imageAnalyzing && (
+                      <div className="flex items-center mt-2 text-blue-400">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing image...
+                      </div>
+                    )}
+                    {imageError && (
+                      <div className="mt-2 text-red-400 text-sm">{imageError}</div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
